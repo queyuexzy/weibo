@@ -1,0 +1,150 @@
+package com.weibo.datasys.util;
+
+import cn.sina.api.commons.util.ApiLogger;
+import org.apache.kafka.clients.producer.*;
+
+import java.util.Properties;
+
+public class KafkaProducer {
+
+    private static KafkaProducer kafkaProducer;
+    private static String topic;
+    private static Properties props;
+    private static SendKafkaResult sendKafkaResult = new SendKafkaResult();
+
+    static {
+        props = new Properties();
+        init();
+    }
+
+    private static void init() {
+        props.put("bootstrap.servers", "10.77.29.174:9092,10.77.29.175:9092,10.77.29.176:9092,10.77.31.185:9092,10.77.31.186:9092,10.77.31.187:9092");
+        props.put("batch.size", "204800");
+        props.put("retries", "2");
+        props.put("acks", "1");
+        props.put("block.on.buffer.full", "false");
+        props.put("timeout.ms", "30000");
+        props.put("reconnect.backoff.ms", "10");
+        props.put("retry.backoff.ms", "100");
+        props.put("max.in.flight.requests.per.connection", "5");
+        props.put("buffer.memory", "33554432");
+        props.put("send.buffer.bytes", "131072");
+        props.put("receive.buffer.bytes", "32768");
+        props.put("max.request.size", "1048576");
+        props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+
+        try {
+            kafkaProducer = new KafkaProducer(props);
+        } catch (Exception e) {
+            ApiLogger.warn("producer not init correct");
+        }
+        System.out.println("init finished");
+    }
+
+    public static void send(String topic, String value){
+        try {
+            System.out.println("begin send");
+            ProducerRecord record = new ProducerRecord<>(topic, "", value);
+            kafkaProducer.send(record, sendKafkaResult);
+            System.out.println("send finished");
+        } catch (Exception e) {
+            ApiLogger.error("emit error: topic:" + topic + ", data:" + value + ", producer: " + kafkaProducer, e);
+        }
+    }
+
+
+    public static void main(String[] args){
+        try{
+            while (true){
+                Result result = new Result();
+                result.setMid("1503139861085");
+                result.setFid("101");
+                result.setValue("7000");
+                result.setIp("10.77.31.117");
+                result.setPort("7000");
+                result.setTime("1");
+                result.setUid(String.valueOf(System.currentTimeMillis()));
+
+                KafkaUtil.send("system.feature_mid_retry", JsonUtil.fromObjectToJson(result));
+                Thread.sleep(1000);
+            }
+        }catch (Exception ex){
+            ex.printStackTrace();
+        }
+    }
+}
+
+class SendKafkaResult implements Callback {
+    @Override
+    public void onCompletion(RecordMetadata recordMetadata, Exception e) {
+//        System.out.println("send success");
+        return;
+    }
+}
+
+class Result{
+    private String mid;
+    private String fid;
+    private String value;
+    private String ip;
+    private String port;
+    private String time;
+    private String uid;
+
+    public String getMid() {
+        return mid;
+    }
+
+    public void setMid(String mid) {
+        this.mid = mid;
+    }
+
+    public String getFid() {
+        return fid;
+    }
+
+    public void setFid(String fid) {
+        this.fid = fid;
+    }
+
+    public String getValue() {
+        return value;
+    }
+
+    public void setValue(String value) {
+        this.value = value;
+    }
+
+    public String getIp() {
+        return ip;
+    }
+
+    public void setIp(String ip) {
+        this.ip = ip;
+    }
+
+    public String getPort() {
+        return port;
+    }
+
+    public void setPort(String port) {
+        this.port = port;
+    }
+
+    public String getTime() {
+        return time;
+    }
+
+    public void setTime(String time) {
+        this.time = time;
+    }
+
+    public String getUid() {
+        return uid;
+    }
+
+    public void setUid(String uid) {
+        this.uid = uid;
+    }
+}
